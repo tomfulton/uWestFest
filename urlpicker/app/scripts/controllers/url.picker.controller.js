@@ -8,8 +8,19 @@ angular.module('umbraco').controller('UrlPickerController', function ($scope, $t
     //get a reference to the current form
     $scope.form = $scope.form || angularHelper.getCurrentForm($scope);
 
+    $scope.isAdditionalType = function (type) {
+      return ["content", "media", "url"].indexOf(type) == -1;
+    };
+
     $scope.switchType = function (type, picker) {
         var index = $scope.pickers.indexOf(picker);
+        if ($scope.isAdditionalType(type)) {
+          // sync picker value with dataTypeValue when tabs are switched
+          var typeConfig = _.find($scope.model.config.additionalTypes, function (t) { return t.alias == type});
+          if (typeConfig) {
+            $scope.pickers[index].typeData.dataTypeValue = typeConfig.propertyModel.value;
+          }
+        }
         $scope.pickers[index].type = type;
     }
 
@@ -117,6 +128,9 @@ angular.module('umbraco').controller('UrlPickerController', function ($scope, $t
             if (picker.type == "url") {
                 title = metaTitle || picker.typeData.url;
             }
+            if ($scope.isAdditionalType(picker.type)) {
+              title = metaTitle || "(" + picker.type + ")"; // TODO: get from a provider
+            }
         }
 
         return title;
@@ -138,6 +152,11 @@ angular.module('umbraco').controller('UrlPickerController', function ($scope, $t
             if (!isNullOrEmpty(picker.typeData.url)) {
                 return false;
             }
+        }
+        if ($scope.isAdditionalType(picker.type)) {
+          if (!isNullOrEmpty(picker.typeData.dataTypeValue)) { // this isn't always an accurate check, don't know what the datatype considers empty
+            return false;
+          }
         }
         return true;
     }
@@ -476,6 +495,32 @@ angular.module('umbraco').controller('UrlPickerController', function ($scope, $t
                 });
                 //Todo: handle scenario where selected media has been deleted
             }
+
+
+            //init custom types
+            urlPickerService.getAllPropertyEditors().then(function (d) {
+              $scope.model.config.additionalTypes.forEach(function (t) {
+                var dataType = _.find(d, function (dt) {
+                  return dt.id == t.dataTypeId;
+                });
+                if (dataType) {
+                  t.propertyModel = {
+                    view: dataType.view,
+                    config: dataType.config,
+                    value: t.alias == obj.type ? obj.typeData.dataTypeValue : '' // set initial value from persisted data
+                  };
+                  t.propertyModel.config.dataTypeId = dataType.id;
+
+                  // Watch each editor value to sync with typeData -- TODO: Destroy?
+                  $scope.$watch(function () { return t.propertyModel.value }, function (newVal, oldVal) {
+                    if (newVal !== oldVal && t.alias == obj.type) { // only react when tab is active
+                      obj.typeData.dataTypeValue = newVal;
+                    }
+                  });
+                }
+              });
+            });
+
         });
         
     }
