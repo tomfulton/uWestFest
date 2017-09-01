@@ -1,8 +1,8 @@
-angular.module('umbraco').controller('UrlPickerController', function ($scope, $timeout, dialogService, entityResource, mediaHelper, angularHelper, iconHelper, localizationService) {
+angular.module('umbraco').controller('UrlPickerController', function ($scope, $timeout, dialogService, entityResource, mediaHelper, angularHelper, iconHelper, localizationService, dataTypeResource, urlPickerService) {
 
     var currentDialog = null;
     var alreadyDirty = false;
-    
+
     init();
 
     //get a reference to the current form
@@ -83,7 +83,7 @@ angular.module('umbraco').controller('UrlPickerController', function ($scope, $t
 
                     picker.content = { "name": content.name, "icon": getSafeIcon(content.icon) };
                     picker.typeData.contentId = content.id;
-                    
+
                     $scope.sync();
                     $scope.setDirty();
                 }
@@ -214,7 +214,7 @@ angular.module('umbraco').controller('UrlPickerController', function ($scope, $t
         if ($scope.model.config.defaultType) {
             defaultType = $scope.model.config.defaultType;
         }
-        
+
         var pickerObj = { "type": defaultType, "meta": { "title": "", "newWindow": false }, "typeData": { "url": "", "contentId": null, "mediaId": null}, "disabled": false };
 
         // collapse other panels
@@ -234,7 +234,7 @@ angular.module('umbraco').controller('UrlPickerController', function ($scope, $t
             $scope.pickers.push(pickerObj);
             $scope.pickers[$scope.pickers.length - 1].active = true;
         }
-        
+
         $scope.sync();
 
         // explicitly set the form as dirty when manipulating the enabled/disabled state of a picker
@@ -333,7 +333,7 @@ angular.module('umbraco').controller('UrlPickerController', function ($scope, $t
     function isNullOrEmpty(value) {
         return value == null || value == "";
     }
-    
+
     function getSafeIcon(icon) {
         // fix icon if it is a legacy icon
         if (iconHelper.isLegacyIcon(icon)) {
@@ -452,26 +452,26 @@ angular.module('umbraco').controller('UrlPickerController', function ($scope, $t
         else {
             $scope.model.config.mediaPreview = true;
         }
-        
+
         $scope.enableTooltip = localizationService.localize("urlPicker_enable");
         $scope.disableTooltip = localizationService.localize("urlPicker_disable");
 
         $scope.pickers = $scope.model.value ? angular.fromJson($scope.model.value) : getDefaultModel($scope.model.config);
-        
+
         // init media and content name and icon from typeData id's
         angular.forEach($scope.pickers, function (obj) {
             var contentId;
             var mediaId;
-                
+
             if(obj.typeData) {
                 if (obj.typeData.contentId) {
                     contentId = obj.typeData.contentId;
                 };
                 if (obj.typeData.mediaId) {
                     mediaId = obj.typeData.mediaId;
-                };   
+                };
             }
-            
+
             if (contentId) {
                 entityResource.getById(contentId, "Document").then(function (content) {
                     //only show non-trashed items
@@ -480,7 +480,7 @@ angular.module('umbraco').controller('UrlPickerController', function ($scope, $t
                     }
                 });
             }
-            
+
             if (mediaId) {
                 entityResource.getById(mediaId, "Media").then(function (media) {
                     //only show non-trashed items
@@ -522,7 +522,7 @@ angular.module('umbraco').controller('UrlPickerController', function ($scope, $t
             });
 
         });
-        
+
     }
 
     $scope.sync = function () {
@@ -536,7 +536,7 @@ angular.module('umbraco').controller('UrlPickerController', function ($scope, $t
 
         $scope.model.value = angular.toJson(array, true);
     };
-    
+
     var unsubscribe = $scope.$on("formSubmitting", function (ev, args) {
         $scope.sync();
     });
